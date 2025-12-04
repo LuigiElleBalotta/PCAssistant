@@ -59,7 +59,7 @@ jobs:
           PY
 
       - name: Build distributable
-        shell: ${{ matrix.shell }}
+        shell: bash
         run: |
           python - <<'PY'
           import hashlib
