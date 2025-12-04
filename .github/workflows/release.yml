@@ -3,168 +3,191 @@ name: Release - Build and Publish
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v1.2.3, etc.
+      - 'v*.*.*'
 
 permissions:
   contents: write
 
 jobs:
-  build-windows:
-    name: Build Windows Executable
-    runs-on: windows-latest
-    
+  version:
+    name: Parse version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
-    
-    - name: Get version from tag
-      id: get_version
-      shell: pwsh
-      run: |
-        $version = "${{ github.ref_name }}" -replace '^v', ''
-        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-        echo "Version: $version"
-    
-    - name: Build executable with PyInstaller
-      run: |
-        pyinstaller --name=PCAssistant `
-          --onedir `
-          --windowed `
-          --icon=src/resources/logo.png `
-          --paths=src `
-          --add-data="src/resources;resources" `
-          --add-data="config.json;." `
-          --hidden-import=gui.main_window `
-          --hidden-import=gui.dashboard_tab `
-          --hidden-import=gui.cleaner_tab `
-          --hidden-import=gui.tools_tab `
-          --hidden-import=gui.disk_analyzer_tab `
-          --hidden-import=gui.optimizer_tab `
-          --hidden-import=gui.settings_tab `
-          --hidden-import=core.cleaner `
-          --hidden-import=core.duplicate_finder `
-          --hidden-import=core.software_manager `
-          --hidden-import=core.registry_manager `
-          --hidden-import=core.optimizer `
-          --hidden-import=core.secure_delete `
-          --hidden-import=core.analyzer `
-          --hidden-import=utils.logger `
-          --hidden-import=utils.config `
-          --hidden-import=utils.admin `
-          --hidden-import=utils.scanner `
-          --hidden-import=PyQt5 `
-          --hidden-import=psutil `
-          --hidden-import=winshell `
-          --hidden-import=win32com `
-          --collect-all=PyQt5 `
-          src/main.py
-    
-    - name: Copy additional files
-      shell: pwsh
-      run: |
-        Copy-Item README.md dist/PCAssistant/
-        Copy-Item GUIDA_RAPIDA.md dist/PCAssistant/
-        Copy-Item config.json dist/PCAssistant/
-        New-Item -ItemType Directory -Force -Path dist/PCAssistant/logs
-        New-Item -ItemType Directory -Force -Path dist/PCAssistant/registry_backups
-        
-        # Create version info file
-        @"
-        PC Assistant - Version ${{ steps.get_version.outputs.VERSION }}
-        Build Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
-        GitHub Release: ${{ github.ref_name }}
-        "@ | Out-File -FilePath dist/PCAssistant/VERSION.txt -Encoding UTF8
-    
-    - name: Create ZIP archive
-      shell: pwsh
-      run: |
-        $version = "${{ steps.get_version.outputs.VERSION }}"
-        Compress-Archive -Path dist/PCAssistant/* -DestinationPath "PCAssistant-v$version-Windows-x64.zip"
-    
-    - name: Calculate checksums
-      shell: pwsh
-      run: |
-        $version = "${{ steps.get_version.outputs.VERSION }}"
-        $zipFile = "PCAssistant-v$version-Windows-x64.zip"
-        $sha256 = (Get-FileHash $zipFile -Algorithm SHA256).Hash
-        @"
-        # Checksums for PC Assistant v$version
-        
-        ## SHA256
-        ``````
-        $sha256  $zipFile
-        ``````
-        "@ | Out-File -FilePath CHECKSUMS.txt -Encoding UTF8
-        
-        Write-Host "SHA256: $sha256"
-    
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          PCAssistant-v${{ steps.get_version.outputs.VERSION }}-Windows-x64.zip
-          CHECKSUMS.txt
-        body: |
-          # PC Assistant v${{ steps.get_version.outputs.VERSION }}
-          
-          ## 🚀 Download
-          
-          Download the ZIP file below, extract it, and run `PCAssistant.exe`.
-          
-          **No Python installation required!**
-          
-          ## 📋 What's Included
-          
-          - ✅ System Cleaner (temp files, browser cache, recycle bin)
-          - ✅ Duplicate File Finder (SHA256 hash-based)
-          - ✅ Software Manager (with uninstall capability)
-          - ✅ Startup Optimizer
-          - ✅ Registry Cleaner (with backup)
-          - ✅ Secure File Deletion (1-35 passes)
-          - ✅ Real-time Resource Monitoring
-          
-          ## 🔒 Security
-          
-          - Run as Administrator for full functionality
-          - Automatic registry backup before modifications
-          - Confirmation dialogs for destructive operations
-          
-          ## 📦 Installation
-          
-          1. Download `PCAssistant-v${{ steps.get_version.outputs.VERSION }}-Windows-x64.zip`
-          2. Extract the ZIP file
-          3. Run `PCAssistant.exe`
-          4. (Optional) Run as Administrator for full features
-          
-          ## 🔐 Checksums
-          
-          See `CHECKSUMS.txt` for SHA256 verification.
-          
-          ---
-          
-          **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.get_version.outputs.VERSION }}...HEAD
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: PCAssistant-Windows-Build
-        path: |
-          PCAssistant-v${{ steps.get_version.outputs.VERSION }}-Windows-x64.zip
-          CHECKSUMS.txt
-        retention-days: 30
+      - id: get_version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build for ${{ matrix.name }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            archive_suffix: Windows-x64
+            shell: pwsh
+          - os: ubuntu-latest
+            name: Linux
+            archive_suffix: Linux-x64
+            shell: bash
+          - os: macos-latest
+            name: macOS
+            archive_suffix: macOS-universal
+            shell: bash
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      ARCHIVE_SUFFIX: ${{ matrix.archive_suffix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build distributable
+        shell: ${{ matrix.shell }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import os
+          import platform
+          import shutil
+          from datetime import datetime
+          from pathlib import Path
+
+          from PyInstaller.__main__ import run as pyinstaller_run
+
+          version = os.environ["VERSION"]
+          suffix = os.environ["ARCHIVE_SUFFIX"]
+          sep = ";" if platform.system() == "Windows" else ":"
+
+          base_args = [
+              "--name=PCAssistant",
+              "--onedir",
+              "--windowed",
+              "--icon=src/resources/logo.png",
+              "--paths=src",
+              f"--add-data=src/resources{sep}resources",
+              f"--add-data=config.json{sep}.",
+              "--hidden-import=gui.main_window",
+              "--hidden-import=gui.dashboard_tab",
+              "--hidden-import=gui.cleaner_tab",
+              "--hidden-import=gui.tools_tab",
+              "--hidden-import=gui.disk_analyzer_tab",
+              "--hidden-import=gui.optimizer_tab",
+              "--hidden-import=gui.settings_tab",
+              "--hidden-import=core.cleaner",
+              "--hidden-import=core.duplicate_finder",
+              "--hidden-import=core.optimizer",
+              "--hidden-import=core.secure_delete",
+              "--hidden-import=core.analyzer",
+              "--hidden-import=utils.logger",
+              "--hidden-import=utils.config",
+              "--hidden-import=utils.admin",
+              "--hidden-import=utils.scanner",
+              "--hidden-import=PyQt5",
+              "--hidden-import=psutil",
+              "--collect-all=PyQt5",
+              "src/main.py",
+          ]
+
+          if platform.system() == "Windows":
+              base_args.extend(
+                  [
+                      "--hidden-import=core.registry_manager",
+                      "--hidden-import=core.software_manager",
+                      "--hidden-import=winshell",
+                      "--hidden-import=win32com",
+                  ]
+              )
+
+          pyinstaller_run(base_args)
+
+          dist_dir = Path("dist") / "PCAssistant"
+          for filename in ["README.md", "GUIDA_RAPIDA.md", "config.json"]:
+              src_path = Path(filename)
+              if src_path.exists():
+                  shutil.copy(src_path, dist_dir / src_path.name)
+
+          (dist_dir / "logs").mkdir(exist_ok=True)
+          (dist_dir / "registry_backups").mkdir(exist_ok=True)
+
+          version_file = dist_dir / "VERSION.txt"
+          version_file.write_text(
+              "\n".join(
+                  [
+                      f"PC Assistant - Version {version}",
+                      f"Build Date: {datetime.utcnow():%Y-%m-%d %H:%M:%S} UTC",
+                      f"Target: {platform.system()}",
+                      f"GitHub Release: v{version}",
+                  ]
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+
+          archive_name = f"PCAssistant-v{version}-{suffix}"
+          shutil.make_archive(archive_name, "zip", root_dir=dist_dir.parent, base_dir=dist_dir.name)
+
+          sha256 = hashlib.sha256(Path(f"{archive_name}.zip").read_bytes()).hexdigest()
+          checksum_path = f"CHECKSUMS-{suffix}.txt"
+          Path(checksum_path).write_text(
+              f"# SHA256\n{sha256}  {archive_name}.zip\n", encoding="utf-8"
+          )
+
+          print(f"Created {archive_name}.zip with checksum {sha256}")
+          PY
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCAssistant-${{ matrix.archive_suffix }}
+          path: |
+            PCAssistant-v${{ env.VERSION }}-${{ matrix.archive_suffix }}.zip
+            CHECKSUMS-${{ matrix.archive_suffix }}.txt
+          retention-days: 30
+
+  release:
+    name: Publish GitHub Release
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: builds
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            builds/**/*.zip
+            builds/**/CHECKSUMS-*.txt
+          body: |
+            # PC Assistant v${{ needs.version.outputs.version }}
+            
+            ## Downloads
+            - Windows: `PCAssistant-v${{ needs.version.outputs.version }}-Windows-x64.zip`
+            - macOS: `PCAssistant-v${{ needs.version.outputs.version }}-macOS-universal.zip`
+            - Linux: `PCAssistant-v${{ needs.version.outputs.version }}-Linux-x64.zip`
+            
+            Verify files with the matching `CHECKSUMS-*.txt` artifacts.
+            
+            ---
+            
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ needs.version.outputs.version }}...HEAD
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,11 +1,20 @@
 """
-System optimizer - Manage startup programs and monitor resources
+System optimizer - Manage startup programs and monitor resources.
+Startup management is Windows-only; resource monitoring works everywhere.
 """
-import winreg
 import os
-import psutil
-from typing import List, Optional
+import platform
 from dataclasses import dataclass
+from typing import List, Optional
+
+import psutil
+
+try:
+    import winreg  # type: ignore
+except ImportError:
+    winreg = None
+
+IS_WINDOWS = platform.system() == "Windows" and winreg is not None
 
 
 @dataclass
@@ -32,16 +41,20 @@ class ResourceStats:
 
 class SystemOptimizer:
     """System optimization and monitoring"""
-    
-    STARTUP_REGISTRY_PATHS = [
-        (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run"),
-        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run"),
-    ]
-    
+
+    STARTUP_REGISTRY_PATHS = (
+        [
+            (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run"),
+        ]
+        if IS_WINDOWS
+        else []
+    )
+
     def __init__(self):
         """Initialize system optimizer"""
-        self.startup_items = []
+        self.startup_items: List[StartupItem] = []
     
     def get_startup_programs(self) -> List[StartupItem]:
         """
@@ -50,6 +63,11 @@ class SystemOptimizer:
         Returns:
             List of StartupItem objects
         """
+        if not IS_WINDOWS:
+            # Startup management is Windows-specific
+            self.startup_items = []
+            return self.startup_items
+
         self.startup_items = []
         
         # Scan registry locations
@@ -108,6 +126,8 @@ class SystemOptimizer:
         Returns:
             True if successful
         """
+        if not IS_WINDOWS:
+            return False
         if item.location == 'registry':
             return self._remove_registry_startup(item)
         elif item.location == 'folder':

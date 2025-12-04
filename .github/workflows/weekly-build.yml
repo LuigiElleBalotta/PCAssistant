@@ -2,91 +2,162 @@ name: Weekly Build
 
 on:
   schedule:
-    # Run every Monday at 00:00 UTC
-    - cron: '0 0 * * 1'
-  workflow_dispatch:  # Allow manual trigger
+    - cron: '0 0 * * 1'  # Every Monday at 00:00 UTC
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Weekly Development Build
-    runs-on: windows-latest
-    
+    name: Weekly Build - ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            archive_suffix: Windows-x64
+            shell: pwsh
+          - os: ubuntu-latest
+            name: Linux
+            archive_suffix: Linux-x64
+            shell: bash
+          - os: macos-latest
+            name: macOS
+            archive_suffix: macOS-universal
+            shell: bash
+
+    env:
+      ARCHIVE_SUFFIX: ${{ matrix.archive_suffix }}
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
-    
-    - name: Build executable
-      run: |
-        pyinstaller --name=PCAssistant `
-          --onedir `
-          --windowed `
-          --icon=src/resources/logo.png `
-          --paths=src `
-          --add-data="src/resources;resources" `
-          --add-data="config.json;." `
-          --hidden-import=gui.main_window `
-          --hidden-import=gui.dashboard_tab `
-          --hidden-import=gui.cleaner_tab `
-          --hidden-import=gui.tools_tab `
-          --hidden-import=gui.disk_analyzer_tab `
-          --hidden-import=gui.optimizer_tab `
-          --hidden-import=gui.settings_tab `
-          --hidden-import=core.cleaner `
-          --hidden-import=core.duplicate_finder `
-          --hidden-import=core.software_manager `
-          --hidden-import=core.registry_manager `
-          --hidden-import=core.optimizer `
-          --hidden-import=core.secure_delete `
-          --hidden-import=core.analyzer `
-          --hidden-import=utils.logger `
-          --hidden-import=utils.config `
-          --hidden-import=utils.admin `
-          --hidden-import=utils.scanner `
-          --hidden-import=PyQt5 `
-          --hidden-import=psutil `
-          --hidden-import=winshell `
-          --hidden-import=win32com `
-          --collect-all=PyQt5 `
-          src/main.py
-    
-    - name: Copy additional files
-      shell: pwsh
-      run: |
-        Copy-Item README.md dist/PCAssistant/
-        Copy-Item GUIDA_RAPIDA.md dist/PCAssistant/
-        Copy-Item config.json dist/PCAssistant/
-        New-Item -ItemType Directory -Force -Path dist/PCAssistant/logs
-        New-Item -ItemType Directory -Force -Path dist/PCAssistant/registry_backups
-        
-        $buildDate = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-        @"
-        PC Assistant - Development Build
-        Build Date: $buildDate
-        Commit: ${{ github.sha }}
-        Branch: ${{ github.ref_name }}
-        "@ | Out-File -FilePath dist/PCAssistant/BUILD_INFO.txt -Encoding UTF8
-    
-    - name: Create ZIP archive
-      shell: pwsh
-      run: |
-        $date = Get-Date -Format 'yyyyMMdd'
-        Compress-Archive -Path dist/PCAssistant/* -DestinationPath "PCAssistant-dev-$date.zip"
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: PCAssistant-Weekly-Build
-        path: PCAssistant-dev-*.zip
-        retention-days: 14
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Set build identifier
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime
+
+          build_id = f"dev-{datetime.utcnow():%Y%m%d}"
+          env_file = os.environ["GITHUB_ENV"]
+          with open(env_file, "a", encoding="utf-8") as fh:
+              fh.write(f"BUILD_VERSION={build_id}\n")
+          print(f"Using build version: {build_id}")
+          PY
+
+      - name: Build distributable
+        shell: ${{ matrix.shell }}
+        run: |
+          python - <<'PY'
+          import hashlib
+          import os
+          import platform
+          import shutil
+          from datetime import datetime
+          from pathlib import Path
+
+          from PyInstaller.__main__ import run as pyinstaller_run
+
+          version = os.environ["BUILD_VERSION"]
+          suffix = os.environ["ARCHIVE_SUFFIX"]
+          sep = ";" if platform.system() == "Windows" else ":"
+
+          base_args = [
+              "--name=PCAssistant",
+              "--onedir",
+              "--windowed",
+              "--icon=src/resources/logo.png",
+              "--paths=src",
+              f"--add-data=src/resources{sep}resources",
+              f"--add-data=config.json{sep}.",
+              "--hidden-import=gui.main_window",
+              "--hidden-import=gui.dashboard_tab",
+              "--hidden-import=gui.cleaner_tab",
+              "--hidden-import=gui.tools_tab",
+              "--hidden-import=gui.disk_analyzer_tab",
+              "--hidden-import=gui.optimizer_tab",
+              "--hidden-import=gui.settings_tab",
+              "--hidden-import=core.cleaner",
+              "--hidden-import=core.duplicate_finder",
+              "--hidden-import=core.optimizer",
+              "--hidden-import=core.secure_delete",
+              "--hidden-import=core.analyzer",
+              "--hidden-import=utils.logger",
+              "--hidden-import=utils.config",
+              "--hidden-import=utils.admin",
+              "--hidden-import=utils.scanner",
+              "--hidden-import=PyQt5",
+              "--hidden-import=psutil",
+              "--collect-all=PyQt5",
+              "src/main.py",
+          ]
+
+          if platform.system() == "Windows":
+              base_args.extend(
+                  [
+                      "--hidden-import=core.registry_manager",
+                      "--hidden-import=core.software_manager",
+                      "--hidden-import=winshell",
+                      "--hidden-import=win32com",
+                  ]
+              )
+
+          pyinstaller_run(base_args)
+
+          dist_dir = Path("dist") / "PCAssistant"
+          for filename in ["README.md", "GUIDA_RAPIDA.md", "config.json"]:
+              src_path = Path(filename)
+              if src_path.exists():
+                  shutil.copy(src_path, dist_dir / src_path.name)
+
+          (dist_dir / "logs").mkdir(exist_ok=True)
+          (dist_dir / "registry_backups").mkdir(exist_ok=True)
+
+          build_info = dist_dir / "BUILD_INFO.txt"
+          build_info.write_text(
+              "\n".join(
+                  [
+                      "PC Assistant - Development Build",
+                      f"Build Date: {datetime.utcnow():%Y-%m-%d %H:%M:%S} UTC",
+                      f"Commit: {os.environ.get('GITHUB_SHA', '')}",
+                      f"Branch: {os.environ.get('GITHUB_REF_NAME', '')}",
+                      f"Target: {platform.system()}",
+                  ]
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+
+          archive_name = f"PCAssistant-{version}-{suffix}"
+          shutil.make_archive(archive_name, "zip", root_dir=dist_dir.parent, base_dir=dist_dir.name)
+
+          sha256 = hashlib.sha256(Path(f"{archive_name}.zip").read_bytes()).hexdigest()
+          checksum_path = f"CHECKSUMS-{suffix}.txt"
+          Path(checksum_path).write_text(
+              f"# SHA256\n{sha256}  {archive_name}.zip\n", encoding="utf-8"
+          )
+
+          print(f"Created {archive_name}.zip with checksum {sha256}")
+          PY
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCAssistant-weekly-${{ matrix.archive_suffix }}
+          path: |
+            PCAssistant-${{ env.BUILD_VERSION }}-${{ matrix.archive_suffix }}.zip
+            CHECKSUMS-${{ matrix.archive_suffix }}.txt
+          retention-days: 14

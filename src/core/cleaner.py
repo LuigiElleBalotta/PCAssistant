@@ -1,12 +1,23 @@
 """
-System cleaner - Remove temporary files, browser data, and junk
+System cleaner - Remove temporary files, browser data, and junk.
+Windows-specific operations are guarded so the module can import elsewhere.
 """
 import os
 import shutil
-import winshell
+import platform
 from typing import List, Dict
 from dataclasses import dataclass
 from pathlib import Path
+
+if platform.system() == "Windows":
+    try:
+        import winshell  # type: ignore
+    except ImportError:
+        winshell = None
+else:
+    winshell = None
+
+IS_WINDOWS = platform.system() == "Windows"
 
 
 
@@ -167,6 +178,16 @@ class SystemCleaner:
     
     def empty_recycle_bin(self) -> CleaningResult:
         """Empty Windows Recycle Bin"""
+        if not IS_WINDOWS or winshell is None:
+            result = CleaningResult(
+                category="Recycle Bin",
+                files_removed=0,
+                space_freed=0,
+                errors=["Recycle Bin cleaning is available only on Windows."],
+                success=False,
+            )
+            self.results.append(result)
+            return result
         try:
             # Get recycle bin size before emptying
             space_freed = 0

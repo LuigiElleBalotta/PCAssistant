@@ -1,5 +1,6 @@
 PyQt5>=5.15.9
 psutil>=5.9.5
-winshell>=0.6
-pywin32>=305
 send2trash>=1.8.2
+winshell>=0.6; platform_system == "Windows"
+pywin32>=305; platform_system == "Windows"
+Pillow>=10.0.0
