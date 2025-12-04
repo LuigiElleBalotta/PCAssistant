@@ -359,14 +359,14 @@ class DiskAnalyzerTab(QWidget):
             return
         
         # Secure delete
-        deleter = SecureDelete(passes=3)
+        deleter = SecureDelete()
         deleted_count = 0
         
         for item in selected:
             disk_item = item.data(0, Qt.UserRole)
             if not disk_item.is_dir:  # Only files for secure delete
                 try:
-                    if deleter.secure_delete_file(disk_item.path):
+                    if deleter.secure_delete_file(disk_item.path, passes=3):
                         deleted_count += 1
                         self.logger.info(f"Securely deleted: {disk_item.path}")
                 except Exception as e:
