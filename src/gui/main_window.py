@@ -10,6 +10,7 @@ import os
 from gui.dashboard_tab import DashboardTab
 from gui.cleaner_tab import CleanerTab
 from gui.tools_tab import ToolsTab
+from gui.disk_analyzer_tab import DiskAnalyzerTab
 from gui.optimizer_tab import OptimizerTab
 from gui.settings_tab import SettingsTab
 from utils.config import get_config
@@ -50,6 +51,7 @@ class MainWindow(QMainWindow):
         self.dashboard_tab = DashboardTab(self)
         self.cleaner_tab = CleanerTab(self)
         self.tools_tab = ToolsTab(self)
+        self.disk_analyzer_tab = DiskAnalyzerTab()
         self.optimizer_tab = OptimizerTab(self)
         self.settings_tab = SettingsTab(self)
         
@@ -57,6 +59,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.dashboard_tab, "📊 Dashboard")
         self.tabs.addTab(self.cleaner_tab, "🧹 Cleaner")
         self.tabs.addTab(self.tools_tab, "🔧 Tools")
+        self.tabs.addTab(self.disk_analyzer_tab, "💾 Disk Analyzer")
         self.tabs.addTab(self.optimizer_tab, "🚀 Optimizer")
         self.tabs.addTab(self.settings_tab, "⚙️ Settings")
         
@@ -143,12 +146,13 @@ class MainWindow(QMainWindow):
             "About PC Assistant",
             "<h2>PC Assistant</h2>"
             "<p>Advanced System Cleaner & Optimizer</p>"
-            "<p>Version 1.0</p>"
+            "<p>Version 1.0.1</p>"
             "<p>Features:</p>"
             "<ul>"
             "<li>System cleaning</li>"
             "<li>Duplicate file detection</li>"
             "<li>Software management</li>"
+            "<li>Disk space analyzer</li>"
             "<li>Registry optimization</li>"
             "<li>Startup management</li>"
             "</ul>"

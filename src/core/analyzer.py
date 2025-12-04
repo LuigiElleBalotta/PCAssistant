@@ -1,13 +1,31 @@
 """
-Disk space analyzer
-Analyze disk usage and identify large files/folders
+Disk analyzer - Analyze disk usage and find large files
 """
 import os
 from typing import List, Dict, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import defaultdict
 from utils.scanner import Scanner, FileInfo
 
+
+@dataclass
+class LargestItem:
+    """Information about a large file or folder"""
+    path: str
+    size: int
+    is_directory: bool
+
+
+@dataclass
+class DiskItem:
+    """Disk item for tree view"""
+    path: str
+    name: str
+    size: int
+    is_dir: bool
+    item_count: int
+    percentage: float = 0.0
+    children: List['DiskItem'] = field(default_factory=list)
 
 
 @dataclass
@@ -22,7 +40,7 @@ class DiskAnalysis:
 
 
 class DiskAnalyzer:
-    """Analyze disk space usage"""
+    """Analyze disk usage"""
     
     def __init__(self, excluded_paths: List[str] = None):
         """Initialize disk analyzer"""
@@ -80,6 +98,104 @@ class DiskAnalyzer:
             largest_folders=largest_folders,
             file_type_distribution=dict(file_types)
         )
+    
+    def build_directory_tree(self, directory: str, progress_callback=None, 
+                           min_size: int = 0, max_depth: int = None) -> DiskItem:
+        """
+        Build a hierarchical tree of directory contents with sizes
+        
+        Args:
+            directory: Root directory to analyze
+            progress_callback: Optional callback(message, current, total)
+            min_size: Minimum size in bytes to include (0 = all)
+            max_depth: Maximum depth to scan (None = unlimited)
+        
+        Returns:
+            DiskItem representing the root with all children
+        """
+        def calculate_dir_size(path: str, current_depth: int = 0) -> Tuple[int, int, List[DiskItem]]:
+            """Calculate directory size and build children list"""
+            if max_depth is not None and current_depth >= max_depth:
+                return 0, 0, []
+            
+            total_size = 0
+            item_count = 0
+            children = []
+            
+            try:
+                entries = os.listdir(path)
+            except (OSError, PermissionError):
+                return 0, 0, []
+            
+            if progress_callback:
+                progress_callback(f"Scanning: {path}", 0, len(entries))
+            
+            for idx, entry in enumerate(entries):
+                entry_path = os.path.join(path, entry)
+                
+                if progress_callback:
+                    progress_callback(f"Scanning: {entry}", idx + 1, len(entries))
+                
+                try:
+                    if os.path.isfile(entry_path):
+                        size = os.path.getsize(entry_path)
+                        if size >= min_size:
+                            child = DiskItem(
+                                path=entry_path,
+                                name=entry,
+                                size=size,
+                                is_dir=False,
+                                item_count=1
+                            )
+                            children.append(child)
+                            total_size += size
+                            item_count += 1
+                    
+                    elif os.path.isdir(entry_path):
+                        dir_size, dir_items, dir_children = calculate_dir_size(
+                            entry_path, current_depth + 1
+                        )
+                        
+                        if dir_size >= min_size or dir_children:
+                            child = DiskItem(
+                                path=entry_path,
+                                name=entry,
+                                size=dir_size,
+                                is_dir=True,
+                                item_count=dir_items,
+                                children=dir_children
+                            )
+                            children.append(child)
+                            total_size += dir_size
+                            item_count += dir_items
+                
+                except (OSError, PermissionError):
+                    continue
+            
+            # Sort children by size (largest first)
+            children.sort(key=lambda x: x.size, reverse=True)
+            
+            # Calculate percentages
+            if total_size > 0:
+                for child in children:
+                    child.percentage = (child.size / total_size) * 100
+            
+            return total_size, item_count, children
+        
+        # Build the tree
+        root_size, root_items, root_children = calculate_dir_size(directory)
+        
+        root = DiskItem(
+            path=directory,
+            name=os.path.basename(directory) or directory,
+            size=root_size,
+            is_dir=True,
+            item_count=root_items,
+            percentage=100.0,
+            children=root_children
+        )
+        
+        return root
     
     def get_file_type_distribution(self, path: str) -> Dict[str, int]:
         """

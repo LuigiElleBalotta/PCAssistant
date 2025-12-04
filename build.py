@@ -58,6 +58,7 @@ def build_executable(build_dir):
         "--hidden-import=gui.dashboard_tab",
         "--hidden-import=gui.cleaner_tab",
         "--hidden-import=gui.tools_tab",
+        "--hidden-import=gui.disk_analyzer_tab",
         "--hidden-import=gui.optimizer_tab",
         "--hidden-import=gui.settings_tab",
         "--hidden-import=core.cleaner",

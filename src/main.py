@@ -4,6 +4,11 @@ Advanced System Cleaner and Optimizer
 """
 import sys
 import os
+
+# Fix for PyQt5 slow GUI response - disable high DPI scaling
+# https://stackoverflow.com/questions/61755740/pyqt5-application-slow-gui-response-for-unknown-reasons
+os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
+
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 
