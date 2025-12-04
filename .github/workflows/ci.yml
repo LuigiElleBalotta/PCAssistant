@@ -38,8 +38,9 @@ jobs:
     
     - name: Test imports
       run: |
-        python -c "import sys; sys.path.insert(0, 'src'); from core.cleaner import SystemCleaner; print('✓ Core modules import successfully')"
-        python -c "import sys; sys.path.insert(0, 'src'); from utils.logger import get_logger; print('✓ Utils modules import successfully')"
+        python -c "import sys; sys.path.insert(0, 'src'); from core.cleaner import SystemCleaner; print('Core modules import successfully')"
+        python -c "import sys; sys.path.insert(0, 'src'); from utils.logger import get_logger; print('Utils modules import successfully')"
+
     
     - name: Upload test results
       if: always()
