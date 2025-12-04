@@ -50,8 +50,28 @@ def build_executable(build_dir):
         f"--distpath={build_dir / 'dist'}",
         f"--workpath={build_dir / 'build'}",
         f"--specpath={build_dir}",
+        "--paths=src",  # Add src to Python path
         "--add-data=src/resources;resources",  # Include resources
         "--add-data=config.json;.",  # Include config
+        # Hidden imports for all our modules
+        "--hidden-import=gui.main_window",
+        "--hidden-import=gui.dashboard_tab",
+        "--hidden-import=gui.cleaner_tab",
+        "--hidden-import=gui.tools_tab",
+        "--hidden-import=gui.optimizer_tab",
+        "--hidden-import=gui.settings_tab",
+        "--hidden-import=core.cleaner",
+        "--hidden-import=core.duplicate_finder",
+        "--hidden-import=core.software_manager",
+        "--hidden-import=core.registry_manager",
+        "--hidden-import=core.optimizer",
+        "--hidden-import=core.secure_delete",
+        "--hidden-import=core.analyzer",
+        "--hidden-import=utils.logger",
+        "--hidden-import=utils.config",
+        "--hidden-import=utils.admin",
+        "--hidden-import=utils.scanner",
+        # External dependencies
         "--hidden-import=PyQt5",
         "--hidden-import=psutil",
         "--hidden-import=winshell",
