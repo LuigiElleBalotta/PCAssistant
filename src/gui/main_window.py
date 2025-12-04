@@ -151,7 +151,7 @@ class MainWindow(QMainWindow):
             "About PC Assistant",
             "<h2>PC Assistant</h2>"
             "<p>Advanced System Cleaner & Optimizer</p>"
-            "<p>Version 1.1.2</p>"
+            "<p>Version 1.1.3</p>"
             "<p>Features:</p>"
             "<ul>"
             "<li>System cleaning</li>"

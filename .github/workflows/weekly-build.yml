@@ -101,7 +101,6 @@ jobs:
               "--hidden-import=utils.scanner",
               "--hidden-import=PyQt5",
               "--hidden-import=psutil",
-              "--collect-all=PyQt5",
               "src/main.py",
           ]
 
