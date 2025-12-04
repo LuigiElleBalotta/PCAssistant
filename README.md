@@ -1,14 +1,14 @@
 # PC Assistant
 
-[![CI](https://github.com/USERNAME/pc_assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/USERNAME/pc_assistant/actions/workflows/ci.yml)
-[![Release](https://github.com/USERNAME/pc_assistant/actions/workflows/release.yml/badge.svg)](https://github.com/USERNAME/pc_assistant/actions/workflows/release.yml)
+[![CI](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml/badge.svg)](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml)
+[![Release](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/release.yml/badge.svg)](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/release.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Advanced system cleaning and optimization tool with CCleaner PRO-like features, built in Python with a modern PyQt5 interface.
 
 ## 🚀 Download
 
-**[Download Latest Release](https://github.com/USERNAME/pc_assistant/releases/latest)**
+**[Download Latest Release](https://github.com/luigiellebalotta/PCAssistant/releases/latest)**
 
 No Python installation required - just download, extract, and run!
 
@@ -53,7 +53,7 @@ No Python installation required - just download, extract, and run!
 
 ### Option 1: Download Pre-built Executable (Recommended)
 
-1. Go to [Releases](https://github.com/USERNAME/pc_assistant/releases/latest)
+1. Go to [Releases](https://github.com/luigiellebalotta/PCAssistant/releases/latest)
 2. Download `PCAssistant-vX.X.X-Windows-x64.zip`
 3. Extract the ZIP file
 4. Run `PCAssistant.exe`
@@ -63,7 +63,7 @@ No Python installation required - just download, extract, and run!
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/USERNAME/pc_assistant.git
+git clone https://github.com/luigiellebalotta/PCAssistant.git
 cd pc_assistant
 ```
 
@@ -227,7 +227,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-If you encounter any issues or have questions, please [open an issue](https://github.com/USERNAME/pc_assistant/issues).
+If you encounter any issues or have questions, please [open an issue](https://github.com/luigiellebalotta/PCAssistant/issues).
 
 ---
 

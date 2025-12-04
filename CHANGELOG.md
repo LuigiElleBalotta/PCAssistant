@@ -71,5 +71,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic registry backup before modifications
 - Protected system paths exclusion
 
-[Unreleased]: https://github.com/USERNAME/pc_assistant/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/USERNAME/pc_assistant/releases/tag/v1.0.0
+[Unreleased]: https://github.com/luigiellebalotta/PCAssistant/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/luigiellebalotta/PCAssistant/releases/tag/v1.0.0

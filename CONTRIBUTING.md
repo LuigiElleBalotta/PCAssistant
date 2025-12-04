@@ -51,7 +51,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/USERNAME/pc_assistant.git
+   git clone https://github.com/luigiellebalotta/PCAssistant.git
    cd pc_assistant
    ```
 

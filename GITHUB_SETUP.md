@@ -21,7 +21,7 @@ Il progetto PC Assistant è ora completamente configurato per CI/CD con GitHub A
 
 **Badge:** 
 ```markdown
-[![CI](https://github.com/USERNAME/pc_assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/USERNAME/pc_assistant/actions/workflows/ci.yml)
+[![CI](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml/badge.svg)](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml)
 ```
 
 ### 2. Release - Build and Publish (`release.yml`)
@@ -102,7 +102,7 @@ GitHub Actions automaticamente:
 
 ### Passo 4: Verifica
 
-Vai su: `https://github.com/USERNAME/pc_assistant/releases`
+Vai su: `https://github.com/luigiellebalotta/PCAssistant/releases`
 
 ## 📝 Template e Documentazione
 
@@ -148,7 +148,7 @@ Template automatico per PR con:
 
 ### Visualizzare Workflow
 
-1. Vai su: `https://github.com/USERNAME/pc_assistant/actions`
+1. Vai su: `https://github.com/luigiellebalotta/PCAssistant/actions`
 2. Seleziona il workflow
 3. Visualizza log in tempo reale
 
@@ -164,8 +164,8 @@ Gli artifact sono disponibili per:
 Aggiungi al README:
 
 ```markdown
-[![CI](https://github.com/USERNAME/pc_assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/USERNAME/pc_assistant/actions/workflows/ci.yml)
-[![Release](https://github.com/USERNAME/pc_assistant/actions/workflows/release.yml/badge.svg)](https://github.com/USERNAME/pc_assistant/actions/workflows/release.yml)
+[![CI](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml/badge.svg)](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml)
+[![Release](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/release.yml/badge.svg)](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/release.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ```
 

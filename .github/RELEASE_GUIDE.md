@@ -67,7 +67,7 @@ Una volta pushato il tag, GitHub Actions automaticamente:
 
 ### 5. Verifica la Release
 
-1. Vai su: `https://github.com/USERNAME/pc_assistant/releases`
+1. Vai su: `https://github.com/luigiellebalotta/PCAssistant/releases`
 2. Verifica che la release sia stata creata
 3. Controlla che i file siano presenti:
    - `PCAssistant-v1.1.0-Windows-x64.zip`
@@ -77,7 +77,7 @@ Una volta pushato il tag, GitHub Actions automaticamente:
 
 Puoi monitorare il processo di build:
 
-1. Vai su: `https://github.com/USERNAME/pc_assistant/actions`
+1. Vai su: `https://github.com/luigiellebalotta/PCAssistant/actions`
 2. Clicca sul workflow "Release - Build and Publish"
 3. Visualizza i log in tempo reale
 
