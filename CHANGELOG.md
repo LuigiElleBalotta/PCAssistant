@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Initial development
+## [1.0.1] - 2025-12-04
+
+### Fixed
+- Fixed PyInstaller module collection issue causing "No module named 'gui'" error
+- Added explicit hidden imports for all application modules (gui, core, utils)
+- Added `--paths=src` to PyInstaller configuration for proper module resolution
+- Fixed Unicode encoding issue in CI workflow test output
+
+### Changed
+- Updated build.py with comprehensive module imports
+- Updated GitHub Actions workflows (release.yml, weekly-build.yml) with fixed PyInstaller configuration
 
 ## [1.0.0] - 2025-12-04
 
@@ -71,5 +80,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic registry backup before modifications
 - Protected system paths exclusion
 
-[Unreleased]: https://github.com/luigiellebalotta/PCAssistant/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/luigiellebalotta/PCAssistant/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/luigiellebalotta/PCAssistant/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/luigiellebalotta/PCAssistant/releases/tag/v1.0.0
