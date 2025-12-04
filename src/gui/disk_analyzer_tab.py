@@ -303,12 +303,23 @@ class DiskAnalyzerTab(QWidget):
         if not selected:
             return
         
+        # Collect items data first (before tree modification)
+        items_to_delete = []
+        total_size = 0
+        for item in selected:
+            disk_item = item.data(0, Qt.UserRole)
+            if disk_item:
+                items_to_delete.append(disk_item)
+                total_size += disk_item.size
+        
+        if not items_to_delete:
+            return
+        
         # Confirm
-        total_size = sum(item.data(0, Qt.UserRole).size for item in selected)
         reply = QMessageBox.question(
             self,
             "Confirm Deletion",
-            f"Delete {len(selected)} items ({Scanner.format_size(total_size)})?\n\n"
+            f"Delete {len(items_to_delete)} items ({Scanner.format_size(total_size)})?\n\n"
             "This will move items to Recycle Bin.",
             QMessageBox.Yes | QMessageBox.No
         )
@@ -316,10 +327,21 @@ class DiskAnalyzerTab(QWidget):
         if reply != QMessageBox.Yes:
             return
         
+        # Create progress dialog
+        progress = QProgressDialog("Deleting items...", "Cancel", 0, len(items_to_delete), self)
+        progress.setWindowTitle("Deleting")
+        progress.setWindowModality(Qt.WindowModal)
+        
         # Delete items
         deleted_count = 0
-        for item in selected:
-            disk_item = item.data(0, Qt.UserRole)
+        for idx, disk_item in enumerate(items_to_delete):
+            if progress.wasCanceled():
+                break
+            
+            progress.setLabelText(f"Deleting: {disk_item.name}")
+            progress.setValue(idx)
+            QApplication.processEvents()
+            
             try:
                 if os.path.exists(disk_item.path):
                     if disk_item.is_dir:
@@ -331,10 +353,13 @@ class DiskAnalyzerTab(QWidget):
             except Exception as e:
                 self.logger.error(f"Error deleting {disk_item.path}: {e}")
         
+        progress.setValue(len(items_to_delete))
+        progress.close()
+        
         QMessageBox.information(
             self,
             "Deletion Complete",
-            f"Deleted {deleted_count} of {len(selected)} items."
+            f"Deleted {deleted_count} of {len(items_to_delete)} items."
         )
         
         self.refresh()
@@ -345,38 +370,73 @@ class DiskAnalyzerTab(QWidget):
         if not selected:
             return
         
+        # Collect items data first
+        items_to_delete = []
+        total_size = 0
+        for item in selected:
+            disk_item = item.data(0, Qt.UserRole)
+            if disk_item:
+                items_to_delete.append(disk_item)
+                total_size += disk_item.size
+        
+        if not items_to_delete:
+            return
+        
         # Confirm
-        total_size = sum(item.data(0, Qt.UserRole).size for item in selected)
         reply = QMessageBox.warning(
             self,
             "Confirm Secure Deletion",
-            f"Securely delete {len(selected)} items ({Scanner.format_size(total_size)})?\n\n"
-            "WARNING: This is PERMANENT and cannot be undone!",
+            f"Securely delete {len(items_to_delete)} items ({Scanner.format_size(total_size)})?\n\n"
+            "WARNING: This is PERMANENT and cannot be undone!\n"
+            "Files will be overwritten 3 times before deletion.",
             QMessageBox.Yes | QMessageBox.No
         )
         
         if reply != QMessageBox.Yes:
             return
         
+        # Create progress dialog
+        progress = QProgressDialog("Securely deleting items...", "Cancel", 0, 100, self)
+        progress.setWindowTitle("Secure Delete")
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        
         # Secure delete
         deleter = SecureDelete()
         deleted_count = 0
+        total_items = len(items_to_delete)
         
-        for item in selected:
-            disk_item = item.data(0, Qt.UserRole)
-            if not disk_item.is_dir:  # Only files for secure delete
-                try:
+        for idx, disk_item in enumerate(items_to_delete):
+            if progress.wasCanceled():
+                break
+            
+            # Update progress
+            overall_progress = int((idx / total_items) * 100)
+            progress.setValue(overall_progress)
+            progress.setLabelText(f"Securely deleting ({idx + 1}/{total_items}):\n{disk_item.name}")
+            QApplication.processEvents()
+            
+            try:
+                if disk_item.is_dir:
+                    # Secure delete folder
+                    if deleter.secure_delete_folder(disk_item.path, passes=3):
+                        deleted_count += 1
+                        self.logger.info(f"Securely deleted folder: {disk_item.path}")
+                else:
+                    # Secure delete file
                     if deleter.secure_delete_file(disk_item.path, passes=3):
                         deleted_count += 1
                         self.logger.info(f"Securely deleted: {disk_item.path}")
-                except Exception as e:
-                    self.logger.error(f"Error securely deleting {disk_item.path}: {e}")
+            except Exception as e:
+                self.logger.error(f"Error securely deleting {disk_item.path}: {e}")
+        
+        progress.setValue(100)
+        progress.close()
         
         QMessageBox.information(
             self,
             "Secure Deletion Complete",
-            f"Securely deleted {deleted_count} files.\n"
-            "Folders were skipped (use regular delete for folders)."
+            f"Securely deleted {deleted_count} of {total_items} items."
         )
         
         self.refresh()
