@@ -53,6 +53,66 @@ class ScanThread(QThread):
         self._is_cancelled = True
 
 
+class SecureDeleteThread(QThread):
+    """Thread for secure deletion"""
+    progress = pyqtSignal(str, int)  # message, percentage
+    finished = pyqtSignal(int, int)  # deleted_count, total_count
+    error = pyqtSignal(str)
+    
+    def __init__(self, items_to_delete):
+        super().__init__()
+        self.items_to_delete = items_to_delete
+        self._is_cancelled = False
+        self.deleted_count = 0
+    
+    def run(self):
+        """Run secure deletion"""
+        try:
+            deleter = SecureDelete()
+            total_items = len(self.items_to_delete)
+            
+            for idx, disk_item in enumerate(self.items_to_delete):
+                if self._is_cancelled:
+                    break
+                
+                overall_progress = int((idx / total_items) * 100)
+                
+                try:
+                    if disk_item.is_dir:
+                        # Secure delete folder
+                        def folder_callback(current_file, file_idx, total_files):
+                            if self._is_cancelled:
+                                return
+                            file_name = os.path.basename(current_file)
+                            msg = f"Folder ({idx + 1}/{total_items}): {disk_item.name}\nFile {file_idx}/{total_files}: {file_name}"
+                            self.progress.emit(msg, overall_progress)
+                        
+                        self.progress.emit(f"Folder ({idx + 1}/{total_items}): {disk_item.name}\nCounting files...", overall_progress)
+                        
+                        if deleter.secure_delete_folder(disk_item.path, passes=3, callback=folder_callback):
+                            self.deleted_count += 1
+                    else:
+                        # Secure delete file
+                        def file_callback(current_pass, total_passes, status):
+                            if self._is_cancelled:
+                                return
+                            msg = f"File ({idx + 1}/{total_items}): {disk_item.name}\nPass {current_pass}/{total_passes}"
+                            self.progress.emit(msg, overall_progress)
+                        
+                        if deleter.secure_delete_file(disk_item.path, passes=3, callback=file_callback):
+                            self.deleted_count += 1
+                except Exception as e:
+                    self.error.emit(f"Error deleting {disk_item.path}: {str(e)}")
+            
+            self.finished.emit(self.deleted_count, total_items)
+        except Exception as e:
+            self.error.emit(str(e))
+    
+    def cancel(self):
+        """Cancel the operation"""
+        self._is_cancelled = True
+
+
 class DiskAnalyzerTab(QWidget):
     """Disk space analyzer tab"""
     
@@ -388,7 +448,8 @@ class DiskAnalyzerTab(QWidget):
             "Confirm Secure Deletion",
             f"Securely delete {len(items_to_delete)} items ({Scanner.format_size(total_size)})?\n\n"
             "WARNING: This is PERMANENT and cannot be undone!\n"
-            "Files will be overwritten 3 times before deletion.",
+            "Files will be overwritten 3 times before deletion.\n\n"
+            "Note: Large folders may take several minutes.",
             QMessageBox.Yes | QMessageBox.No
         )
         
@@ -396,50 +457,57 @@ class DiskAnalyzerTab(QWidget):
             return
         
         # Create progress dialog
-        progress = QProgressDialog("Securely deleting items...", "Cancel", 0, 100, self)
-        progress.setWindowTitle("Secure Delete")
-        progress.setWindowModality(Qt.WindowModal)
-        progress.setMinimumDuration(0)
+        self.secure_delete_progress = QProgressDialog("Starting secure deletion...", "Cancel", 0, 100, self)
+        self.secure_delete_progress.setWindowTitle("Secure Delete")
+        self.secure_delete_progress.setWindowModality(Qt.WindowModal)
+        self.secure_delete_progress.setMinimumDuration(0)
+        self.secure_delete_progress.setValue(0)
+        self.secure_delete_progress.canceled.connect(self.cancel_secure_delete)
         
-        # Secure delete
-        deleter = SecureDelete()
-        deleted_count = 0
-        total_items = len(items_to_delete)
+        # Start secure delete thread
+        self.secure_delete_thread = SecureDeleteThread(items_to_delete)
+        self.secure_delete_thread.progress.connect(self.update_secure_delete_progress)
+        self.secure_delete_thread.finished.connect(self.secure_delete_finished)
+        self.secure_delete_thread.error.connect(self.secure_delete_error)
+        self.secure_delete_thread.start()
         
-        for idx, disk_item in enumerate(items_to_delete):
-            if progress.wasCanceled():
-                break
-            
-            # Update progress
-            overall_progress = int((idx / total_items) * 100)
-            progress.setValue(overall_progress)
-            progress.setLabelText(f"Securely deleting ({idx + 1}/{total_items}):\n{disk_item.name}")
-            QApplication.processEvents()
-            
-            try:
-                if disk_item.is_dir:
-                    # Secure delete folder
-                    if deleter.secure_delete_folder(disk_item.path, passes=3):
-                        deleted_count += 1
-                        self.logger.info(f"Securely deleted folder: {disk_item.path}")
-                else:
-                    # Secure delete file
-                    if deleter.secure_delete_file(disk_item.path, passes=3):
-                        deleted_count += 1
-                        self.logger.info(f"Securely deleted: {disk_item.path}")
-            except Exception as e:
-                self.logger.error(f"Error securely deleting {disk_item.path}: {e}")
+        # Disable buttons during deletion
+        self.delete_btn.setEnabled(False)
+        self.secure_delete_btn.setEnabled(False)
+        self.scan_btn.setEnabled(False)
+    
+    def update_secure_delete_progress(self, message, percentage):
+        """Update secure delete progress"""
+        if hasattr(self, 'secure_delete_progress'):
+            self.secure_delete_progress.setLabelText(message)
+            self.secure_delete_progress.setValue(percentage)
+    
+    def secure_delete_finished(self, deleted_count, total_count):
+        """Secure delete finished"""
+        if hasattr(self, 'secure_delete_progress'):
+            self.secure_delete_progress.close()
         
-        progress.setValue(100)
-        progress.close()
+        # Re-enable buttons
+        self.delete_btn.setEnabled(True)
+        self.secure_delete_btn.setEnabled(True)
+        self.scan_btn.setEnabled(True)
         
         QMessageBox.information(
             self,
             "Secure Deletion Complete",
-            f"Securely deleted {deleted_count} of {total_items} items."
+            f"Securely deleted {deleted_count} of {total_count} items."
         )
         
         self.refresh()
+    
+    def secure_delete_error(self, error_msg):
+        """Secure delete error"""
+        self.logger.error(f"Secure delete error: {error_msg}")
+    
+    def cancel_secure_delete(self):
+        """Cancel secure delete"""
+        if hasattr(self, 'secure_delete_thread'):
+            self.secure_delete_thread.cancel()
     
     def refresh(self):
         """Refresh the scan"""

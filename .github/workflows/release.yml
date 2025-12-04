@@ -42,6 +42,7 @@ jobs:
         pyinstaller --name=PCAssistant `
           --onedir `
           --windowed `
+          --icon=src/resources/logo.png `
           --paths=src `
           --add-data="src/resources;resources" `
           --add-data="config.json;." `

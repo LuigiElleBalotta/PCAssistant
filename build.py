@@ -46,7 +46,7 @@ def build_executable(build_dir):
         "--name=PCAssistant",
         "--onedir",  # Create a folder with dependencies
         "--windowed",  # No console window
-        "--icon=NONE",  # Add icon path if you have one
+        "--icon=src/resources/logo.png",  # Application icon
         f"--distpath={build_dir / 'dist'}",
         f"--workpath={build_dir / 'build'}",
         f"--specpath={build_dir}",

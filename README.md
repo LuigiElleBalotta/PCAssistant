@@ -1,5 +1,9 @@
 # PC Assistant
 
+<p align="center">
+  <img src="assets/logo.png" alt="PC Assistant Logo" width="200"/>
+</p>
+
 [![CI](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml/badge.svg)](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml)
 [![Release](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/release.yml/badge.svg)](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/release.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

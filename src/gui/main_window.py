@@ -35,6 +35,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("PC Assistant - System Cleaner & Optimizer")
         self.setGeometry(100, 100, 1200, 800)
         
+        # Set window icon
+        icon_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'logo.png')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+        
         # Create central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
