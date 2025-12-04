@@ -1,7 +1,7 @@
 # PC Assistant
 
 <p align="center">
-  <img src="assets/logo.png" alt="PC Assistant Logo" width="200"/>
+  <img src="src/resources/logo.png" alt="PC Assistant Logo" width="200"/>
 </p>
 
 [![CI](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml/badge.svg)](https://github.com/luigiellebalotta/PCAssistant/actions/workflows/ci.yml)
