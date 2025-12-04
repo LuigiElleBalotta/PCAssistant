@@ -1,0 +1,72 @@
+name: Weekly Build
+
+on:
+  schedule:
+    # Run every Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build:
+    name: Weekly Development Build
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build executable
+      run: |
+        pyinstaller --name=PCAssistant `
+          --onedir `
+          --windowed `
+          --add-data="src/resources;resources" `
+          --add-data="config.json;." `
+          --hidden-import=PyQt5 `
+          --hidden-import=psutil `
+          --hidden-import=winshell `
+          --hidden-import=win32com `
+          --collect-all=PyQt5 `
+          src/main.py
+    
+    - name: Copy additional files
+      shell: pwsh
+      run: |
+        Copy-Item README.md dist/PCAssistant/
+        Copy-Item GUIDA_RAPIDA.md dist/PCAssistant/
+        Copy-Item config.json dist/PCAssistant/
+        New-Item -ItemType Directory -Force -Path dist/PCAssistant/logs
+        New-Item -ItemType Directory -Force -Path dist/PCAssistant/registry_backups
+        
+        $buildDate = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+        @"
+        PC Assistant - Development Build
+        Build Date: $buildDate
+        Commit: ${{ github.sha }}
+        Branch: ${{ github.ref_name }}
+        "@ | Out-File -FilePath dist/PCAssistant/BUILD_INFO.txt -Encoding UTF8
+    
+    - name: Create ZIP archive
+      shell: pwsh
+      run: |
+        $date = Get-Date -Format 'yyyyMMdd'
+        Compress-Archive -Path dist/PCAssistant/* -DestinationPath "PCAssistant-dev-$date.zip"
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PCAssistant-Weekly-Build
+        path: PCAssistant-dev-*.zip
+        retention-days: 14

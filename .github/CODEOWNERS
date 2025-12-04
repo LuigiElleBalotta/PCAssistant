@@ -1,0 +1,14 @@
+# Automatically request reviews from code owners
+* @USERNAME
+
+# Core modules
+/src/core/ @USERNAME
+/src/gui/ @USERNAME
+/src/utils/ @USERNAME
+
+# Build and CI/CD
+/.github/ @USERNAME
+/build.py @USERNAME
+
+# Documentation
+*.md @USERNAME
